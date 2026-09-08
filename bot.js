@@ -1,29 +1,31 @@
 /*
-
   ██████╗░████████╗██╗░░██╗           
   ██╔══██╗╚══██╔══╝╚██╗██╔╝          
   ██████╔╝░░░██║░░░░╚███╔╝░          
   ██╔══██╗░░░██║░░░░██╔██╗░          
-  ██║░░██║░░░██║░░░██╔╝╚██╗          
+  ██║░░██║░░░██║░░░░██╔╝╚██╗          
   ╚═╝░░╚═╝░░░╚═╝░░░╚═╝░░╚═╝          
 
-
-   # MADE BY RTX!! FEEL FREE TO USE ANY PART OF CODE
-   ## FOR HELP CONTACT ME ON DISCORD
-   ## Contact    [ DISCORD SERVER :  https://discord.gg/FUEHs7RCqz ]
+   # MADE BY RTX!!
+   ## Contact [ DISCORD SERVER : https://discord.gg/FUEHs7RCqz ]
    ## YT : https://www.youtube.com/channel/UCPbAvYWBgnYhliJa1BIrv0A
 */
 
-const { Client, GatewayIntentBits, Partials } = require("discord.js");
+const { Client, GatewayIntentBits } = require("discord.js");
 const { DisTube } = require("distube");
 const { SpotifyPlugin } = require("@distube/spotify");
 const { SoundCloudPlugin } = require("@distube/soundcloud");
 const { DeezerPlugin } = require("@distube/deezer");
 const { YtDlpPlugin } = require("@distube/yt-dlp");
-const { printWatermark } = require('./util/pw');
+
+const { printWatermark } = require("./util/pw");
 const config = require("./config.js");
+
 const fs = require("fs");
-const path = require('path');
+const path = require("path");
+const express = require("express");
+
+// ==================== DISCORD CLIENT ====================
 
 const client = new Client({
   intents: Object.keys(GatewayIntentBits).map((a) => {
@@ -32,13 +34,18 @@ const client = new Client({
 });
 
 client.config = config;
+
+// ==================== DISTUBE ====================
+
 client.player = new DisTube(client, {
   leaveOnStop: config.opt.voiceConfig.leaveOnStop,
   leaveOnFinish: config.opt.voiceConfig.leaveOnFinish,
   leaveOnEmpty: config.opt.voiceConfig.leaveOnEmpty.status,
+
   emitNewSongOnly: true,
   emitAddSongWhenCreatingQueue: false,
   emitAddListWhenCreatingQueue: false,
+
   plugins: [
     new SpotifyPlugin(),
     new SoundCloudPlugin(),
@@ -46,89 +53,157 @@ client.player = new DisTube(client, {
     new DeezerPlugin(),
   ],
 });
+
 process.env.YTDL_NO_UPDATE = true;
+
 const player = client.player;
 
-fs.readdir("./events", (_err, files) => {
-  files.forEach((file) => {
-    if (!file.endsWith(".js")) return;
-    const event = require(`./events/${file}`);
-    let eventName = file.split(".")[0]; 
-    client.on(eventName, event.bind(null, client));
-    delete require.cache[require.resolve(`./events/${file}`)];
-  });
-});
-fs.readdir("./events/player", (_err, files) => {
-  files.forEach((file) => {
-    if (!file.endsWith(".js")) return;
-    const player_events = require(`./events/player/${file}`);
-    let playerName = file.split(".")[0];
-    player.on(playerName, player_events.bind(null, client));
-    delete require.cache[require.resolve(`./events/player/${file}`)];
-  });
-});
+// ==================== LOAD EVENTS ====================
 
-client.commands = [];
-fs.readdir(config.commandsDir, (err, files) => {
-  if (err) throw err;
-  files.forEach(async (f) => {
+fs.readdir("./events", (err, files) => {
+  if (err) {
+    console.log("❌ Events folder error:", err);
+    return;
+  }
+
+  files.forEach((file) => {
+    if (!file.endsWith(".js")) return;
+
     try {
-      if (f.endsWith(".js")) {
-        let props = require(`${config.commandsDir}/${f}`);
-        client.commands.push({
-          name: props.name,
-          description: props.description,
-          options: props.options,
-        });
-      }
-    } catch (err) {
-      console.log(err);
+      const event = require(`./events/${file}`);
+      const eventName = file.split(".")[0];
+
+      client.on(eventName, event.bind(null, client));
+
+      delete require.cache[require.resolve(`./events/${file}`)];
+    } catch (error) {
+      console.log(`❌ Failed to load event: ${file}`);
+      console.log(error);
     }
   });
 });
 
+// ==================== LOAD PLAYER EVENTS ====================
 
-
-if (config.TOKEN || process.env.TOKEN) {
-  client.login(config.TOKEN || process.env.TOKEN).catch((e) => {
-    console.log('TOKEN ERROR❌❌');
-  });
-} else {
-  setTimeout(() => {
-    console.log('TOKEN ERROR❌❌');
-  }, 2000);
-}
-
-
-if(config.mongodbURL || process.env.MONGO){
-  const mongoose = require("mongoose")
-  mongoose.connect(config.mongodbURL || process.env.MONGO, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  }).then(async () => {
-    console.log('\x1b[32m%s\x1b[0m', `|    🍔 Connected MongoDB!`)
-  }).catch((err) => {
-    console.log('\x1b[32m%s\x1b[0m', `|    🍔 Failed to connect MongoDB!`)})
-  } else {
-  console.log('\x1b[32m%s\x1b[0m', `|    🍔 Error MongoDB!`)
+fs.readdir("./events/player", (err, files) => {
+  if (err) {
+    console.log("❌ Player events folder error:", err);
+    return;
   }
 
+  files.forEach((file) => {
+    if (!file.endsWith(".js")) return;
 
-const express = require("express");
+    try {
+      const playerEvent = require(`./events/player/${file}`);
+      const playerName = file.split(".")[0];
+
+      player.on(playerName, playerEvent.bind(null, client));
+
+      delete require.cache[require.resolve(`./events/player/${file}`)];
+    } catch (error) {
+      console.log(`❌ Failed to load player event: ${file}`);
+      console.log(error);
+    }
+  });
+});
+
+// ==================== LOAD COMMANDS ====================
+
+client.commands = [];
+
+fs.readdir(config.commandsDir, (err, files) => {
+  if (err) {
+    console.log("❌ Commands folder error:", err);
+    return;
+  }
+
+  files.forEach((file) => {
+    if (!file.endsWith(".js")) return;
+
+    try {
+      const command = require(`${config.commandsDir}/${file}`);
+
+      client.commands.push({
+        name: command.name,
+        description: command.description,
+        options: command.options,
+      });
+    } catch (error) {
+      console.log(`❌ Failed to load command: ${file}`);
+      console.log(error);
+    }
+  });
+
+  console.log(`🚀 Commands Loaded!`);
+});
+
+// ==================== DISCORD LOGIN ====================
+
+const TOKEN = config.TOKEN || process.env.TOKEN;
+
+if (TOKEN) {
+  client
+    .login(TOKEN)
+    .then(() => {
+      console.log("🤖 Discord Bot Logged In!");
+    })
+    .catch((error) => {
+      console.log("❌ TOKEN ERROR!");
+      console.log(error);
+    });
+} else {
+  console.log("❌ TOKEN ERROR: TOKEN is missing!");
+}
+
+// ==================== MONGODB ====================
+
+const MONGO_URL = config.mongodbURL || process.env.MONGO;
+
+if (MONGO_URL) {
+  const mongoose = require("mongoose");
+
+  mongoose
+    .connect(MONGO_URL)
+    .then(() => {
+      console.log("\x1b[32m%s\x1b[0m", "🍔 Connected MongoDB!");
+    })
+    .catch((error) => {
+      console.log("❌ Failed to connect MongoDB!");
+      console.log(error);
+    });
+} else {
+  console.log("❌ Error: MongoDB URL is missing!");
+}
+
+// ==================== EXPRESS SERVER ====================
+
 const app = express();
-const port = 3000;
-app.get('/', (req, res) => {
-  const imagePath = path.join(__dirname, 'index.html');
-  res.sendFile(imagePath);
+
+// IMPORTANT FOR RENDER
+const port = process.env.PORT || 3000;
+
+app.get("/", (req, res) => {
+  const imagePath = path.join(__dirname, "index.html");
+
+  res.sendFile(imagePath, (error) => {
+    if (error) {
+      console.log("❌ index.html not found!");
+      res.status(404).send("RTX Music Bot is Online!");
+    }
+  });
 });
-app.listen(port, () => {
-  console.log(`🔗 Listening to RTX: http://localhost:${port}`);
-  console.log(`✨ Happy New Year Welcome To 2024`);
+
+app.listen(port, "0.0.0.0", () => {
+  console.log(`🔗 Listening to RTX on port: ${port}`);
+  console.log("✨ Happy New Year Welcome To 2024");
 });
+
+// ==================== WATERMARK ====================
+
 printWatermark();
 
 /*
-
   ██████╗░████████╗██╗░░██╗           
   ██╔══██╗╚══██╔══╝╚██╗██╔╝          
   ██████╔╝░░░██║░░░░╚███╔╝░          
@@ -136,9 +211,6 @@ printWatermark();
   ██║░░██║░░░██║░░░██╔╝╚██╗          
   ╚═╝░░╚═╝░░░╚═╝░░░╚═╝░░╚═╝          
 
-
-   # MADE BY RTX!! FEEL FREE TO USE ANY PART OF CODE
-   ## FOR HELP CONTACT ME ON DISCORD
-   ## Contact    [ DISCORD SERVER :  https://discord.gg/FUEHs7RCqz ]
-   ## YT : https://www.youtube.com/channel/UCPbAvYWBgnYhliJa1BIrv0A
+   # MADE BY RTX!!
+   ## FEEL FREE TO USE ANY PART OF CODE
 */
