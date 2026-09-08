@@ -1,24 +1,28 @@
-const config = require("./config.js");
-const { ShardingManager } = require("discord.js");
+const config = require('./config.js');
+const { ShardingManager } = require('discord.js');
 
 const token = config.TOKEN || process.env.TOKEN;
 
+// টোকেন আছে কিনা তা আগে পরীক্ষা করা হচ্ছে
 if (!token) {
     console.error("❌ TOKEN পাওয়া যায়নি!");
     process.exit(1);
 }
 
+// Sharding সক্রিয় আছে কিনা তা চেক করা
 if (config.shardManager?.shardStatus === true) {
-    const manager = new ShardingManager("./bot.js", {
+    console.log("⚙️  ShardingManager শুরু হচ্ছে...");
+
+    const manager = new ShardingManager('./bot.js', {
         token: token,
-        totalShards: "auto"
+        totalShards: 'auto'
     });
 
-    manager.on("shardCreate", (shard) => {
+    manager.on('shardCreate', (shard) => {
         console.log(`✅ Launched shard ${shard.id}`);
     });
 
-    manager.on("error", (error) => {
+    manager.on('error', (error) => {
         console.error("❌ Sharding Error:", error);
     });
 
@@ -28,8 +32,7 @@ if (config.shardManager?.shardStatus === true) {
 
 } else {
     console.log("🚀 Starting bot without sharding...");
-
-    require("./bot.js");
+    require('./bot.js');
 }
 /*
 
