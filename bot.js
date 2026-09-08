@@ -1,14 +1,15 @@
 /*
-  ██████╗░████████╗██╗░░██╗           
-  ██╔══██╗╚══██╔══╝╚██╗██╔╝          
-  ██████╔╝░░░██║░░░░╚███╔╝░          
-  ██╔══██╗░░░██║░░░░██╔██╗░          
-  ██║░░██║░░░██║░░░░██╔╝╚██╗          
-  ╚═╝░░╚═╝░░░╚═╝░░░╚═╝░░╚═╝          
+  ██████╗░████████╗██╗░░██╗
+  ██╔══██╗╚══██╔══╝╚██╗██╔╝
+  ██████╔╝░░░██║░░░░╚███╔╝░
+  ██╔══██╗░░░██║░░░░██╔██╗░
+  ██║░░██║░░░██║░░░██╔╝╚██╗
+  ╚═╝░░╚═╝░░░╚═╝░░░╚═╝░░╚═╝
 
-   # MADE BY RTX!!
-   ## Contact [ DISCORD SERVER : https://discord.gg/FUEHs7RCqz ]
-   ## YT : https://www.youtube.com/channel/UCPbAvYWBgnYhliJa1BIrv0A
+  # MADE BY RTX!! FEEL FREE TO USE ANY PART OF CODE
+  ## FOR HELP CONTACT ME ON DISCORD
+  ## Contact [ DISCORD SERVER : https://discord.gg/FUEHs7RCqz ]
+  ## YT : https://www.youtube.com/channel/UCPbAvYWBgnYhliJa1BIrv0A
 */
 
 const { Client, GatewayIntentBits } = require("discord.js");
@@ -17,35 +18,27 @@ const { SpotifyPlugin } = require("@distube/spotify");
 const { SoundCloudPlugin } = require("@distube/soundcloud");
 const { DeezerPlugin } = require("@distube/deezer");
 const { YtDlpPlugin } = require("@distube/yt-dlp");
-
 const { printWatermark } = require("./util/pw");
 const config = require("./config.js");
-
 const fs = require("fs");
 const path = require("path");
 const express = require("express");
 
 // ==================== DISCORD CLIENT ====================
-
 const client = new Client({
-  intents: Object.keys(GatewayIntentBits).map((a) => {
-    return GatewayIntentBits[a];
-  }),
+  intents: Object.keys(GatewayIntentBits).map((a) => GatewayIntentBits[a]),
 });
 
 client.config = config;
 
-// ==================== DISTUBE ====================
-
+// ==================== DISTUBE PLAYER ====================
 client.player = new DisTube(client, {
   leaveOnStop: config.opt.voiceConfig.leaveOnStop,
   leaveOnFinish: config.opt.voiceConfig.leaveOnFinish,
   leaveOnEmpty: config.opt.voiceConfig.leaveOnEmpty.status,
-
   emitNewSongOnly: true,
   emitAddSongWhenCreatingQueue: false,
   emitAddListWhenCreatingQueue: false,
-
   plugins: [
     new SpotifyPlugin(),
     new SoundCloudPlugin(),
@@ -55,11 +48,9 @@ client.player = new DisTube(client, {
 });
 
 process.env.YTDL_NO_UPDATE = true;
-
 const player = client.player;
 
 // ==================== LOAD EVENTS ====================
-
 fs.readdir("./events", (err, files) => {
   if (err) {
     console.log("❌ Events folder error:", err);
@@ -68,13 +59,11 @@ fs.readdir("./events", (err, files) => {
 
   files.forEach((file) => {
     if (!file.endsWith(".js")) return;
-
     try {
       const event = require(`./events/${file}`);
       const eventName = file.split(".")[0];
 
       client.on(eventName, event.bind(null, client));
-
       delete require.cache[require.resolve(`./events/${file}`)];
     } catch (error) {
       console.log(`❌ Failed to load event: ${file}`);
@@ -84,7 +73,6 @@ fs.readdir("./events", (err, files) => {
 });
 
 // ==================== LOAD PLAYER EVENTS ====================
-
 fs.readdir("./events/player", (err, files) => {
   if (err) {
     console.log("❌ Player events folder error:", err);
@@ -93,13 +81,11 @@ fs.readdir("./events/player", (err, files) => {
 
   files.forEach((file) => {
     if (!file.endsWith(".js")) return;
-
     try {
       const playerEvent = require(`./events/player/${file}`);
       const playerName = file.split(".")[0];
 
       player.on(playerName, playerEvent.bind(null, client));
-
       delete require.cache[require.resolve(`./events/player/${file}`)];
     } catch (error) {
       console.log(`❌ Failed to load player event: ${file}`);
@@ -109,7 +95,6 @@ fs.readdir("./events/player", (err, files) => {
 });
 
 // ==================== LOAD COMMANDS ====================
-
 client.commands = [];
 
 fs.readdir(config.commandsDir, (err, files) => {
@@ -139,7 +124,6 @@ fs.readdir(config.commandsDir, (err, files) => {
 });
 
 // ==================== DISCORD LOGIN ====================
-
 const TOKEN = config.TOKEN || process.env.TOKEN;
 
 if (TOKEN) {
@@ -156,8 +140,7 @@ if (TOKEN) {
   console.log("❌ TOKEN ERROR: TOKEN is missing!");
 }
 
-// ==================== MONGODB ====================
-
+// ==================== MONGODB CONNECT ====================
 const MONGO_URL = config.mongodbURL || process.env.MONGO;
 
 if (MONGO_URL) {
@@ -176,11 +159,8 @@ if (MONGO_URL) {
   console.log("❌ Error: MongoDB URL is missing!");
 }
 
-// ==================== EXPRESS SERVER ====================
-
+// ==================== EXPRESS SERVER (FOR HOSTING) ====================
 const app = express();
-
-// IMPORTANT FOR RENDER
 const port = process.env.PORT || 3000;
 
 app.get("/", (req, res) => {
@@ -189,7 +169,7 @@ app.get("/", (req, res) => {
   res.sendFile(imagePath, (error) => {
     if (error) {
       console.log("❌ index.html not found!");
-      res.status(404).send("RTX Music Bot is Online!");
+      res.status(200).send("RTX Music Bot is Online!");
     }
   });
 });
@@ -200,17 +180,4 @@ app.listen(port, "0.0.0.0", () => {
 });
 
 // ==================== WATERMARK ====================
-
 printWatermark();
-
-/*
-  ██████╗░████████╗██╗░░██╗           
-  ██╔══██╗╚══██╔══╝╚██╗██╔╝          
-  ██████╔╝░░░██║░░░░╚███╔╝░          
-  ██╔══██╗░░░██║░░░░██╔██╗░          
-  ██║░░██║░░░██║░░░██╔╝╚██╗          
-  ╚═╝░░╚═╝░░░╚═╝░░░╚═╝░░╚═╝          
-
-   # MADE BY RTX!!
-   ## FEEL FREE TO USE ANY PART OF CODE
-*/
