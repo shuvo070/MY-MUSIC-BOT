@@ -34,6 +34,6 @@
   "author": "RTX GAMING",
   "license": "XX",
   "engines": {
-    "node": "18.x"
+    "node": "20.x"
   }
 }
